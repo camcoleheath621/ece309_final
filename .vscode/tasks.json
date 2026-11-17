@@ -1,0 +1,8 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {"label": "Configure (WSL)", "type": "process", "command": "wsl.exe", "args": ["-d", "Ubuntu", "--", "bash", "-lc", "cd \"$(wslpath '${workspaceFolder}')\" && cmake -S . -B build -DMH_WERROR=ON"], "problemMatcher": []},
+    {"label": "Build (WSL)", "type": "process", "command": "wsl.exe", "args": ["-d", "Ubuntu", "--", "bash", "-lc", "cd \"$(wslpath '${workspaceFolder}')\" && cmake --build build -j 4"], "dependsOn": "Configure (WSL)", "group": {"kind": "build", "isDefault": true}, "problemMatcher": "$gcc"},
+    {"label": "Test (WSL)", "type": "process", "command": "wsl.exe", "args": ["-d", "Ubuntu", "--", "bash", "-lc", "cd \"$(wslpath '${workspaceFolder}')\" && ctest --test-dir build --output-on-failure"], "dependsOn": "Build (WSL)", "problemMatcher": []}
+  ]
+}
