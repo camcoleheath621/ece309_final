@@ -18,10 +18,11 @@
 #include <cstdint>
 #include <functional>
 #include <string>
+#include <algorithm> // Additon: provides std::max
 
 struct MemoryRecord {
-    std::uint64_t id = 0;     // unique key; shown to the model as "m<id>"
-    std::string   text;
+    std::uint64_t id = 0;       // unique key; shown to the model as "m<id>"
+    std::string   text;         // the remember text
 };
 
 class MemoryIndex {
@@ -79,7 +80,31 @@ private:
         MemoryRecord rec;
         Node*        left = nullptr;
         Node*        right = nullptr;
+
+        // store this subtree's height, starting at 1 for a new leaf
+        std::size_t height = 1;
+
     };
+
+    // Read a subtree's stored height without accessing a null pointer
+    static std::size_t height_of(const Node* n) {
+        // An empty subtree has height 0
+        if (n == nullptr) {
+            return 0;
+        }
+        // Return existing nodes stored height
+        return n->height;
+    }
+
+    // Recalculate a node's height from its children
+    static void update_height(Node* n) {
+        // Calculate height of both subtrees
+        std:: size_t left_height = height_of(n->left);
+        std:: size_t right_height = height_of(n->right);
+        
+        // Store 1 plus height of the largest subtree
+        n->height = 1 + std::max(left_height, right_height);
+    }
 
     Node*       root_ = nullptr;
     std::size_t count_ = 0;
