@@ -1,6 +1,37 @@
 // src/memory/memory_index.cpp — YOU IMPLEMENT. Spec §4.3.
 
 #include "memory/memory_index.h"
+#include <utility>  // provides std::move
+
+// Insert a record and rebalance on the way back up
+MemoryIndex::Node* MemoryIndex::insert_node(
+    Node* n, MemoryRecord rec, bool& inserted) {
+
+    // An empty subtree is a fresh slot
+    if (n == nullptr) {
+        Node* new_node = new Node{std::move(rec)}; // create a node containing rec
+        inserted = true;    // Set inserted to true
+        return new_node;    // return new node
+    }
+
+    // Leave a duplicate ID unchanged
+    if (rec.id == n->rec.id) {
+        return n;
+    }
+
+    // Insert smaller IDs into the left subtree
+    if (rec.id < n->rec.id) {
+        // Assign the recursive result to n->left
+        n->left = insert_node(n->left, std::move(rec), inserted);
+    }
+    // Insert larger IDs into the right subtree
+    else {
+        // Assign the recursive result to n->right
+        n->right = insert_node(n->right, std::move(rec), inserted);
+    }
+
+    return rebalance(n); // Return the balanced subtree root
+}
 
 MemoryIndex::~MemoryIndex() {
     // TODO: free every node (post-order: both children before the node).
@@ -8,13 +39,18 @@ MemoryIndex::~MemoryIndex() {
 }
 
 bool MemoryIndex::insert(MemoryRecord rec) {
-    // TODO: walk down from root_ (smaller ids left, larger right). Equal id:
-    // return false and change nothing. Otherwise attach a new Node where the
-    // walk fell off the tree, ++count_, return true.
-    // Clue: memory ids arrive as 1, 2, 3, ..., so the tree is one long right
-    // spine. A loop handles 5,000 nodes easily; so does recursion.
-    (void)rec;
-    return false;
+    // Track whether a new node was added
+    bool inserted = false;  
+    
+    // Pass the record to the helper and save the updated root
+    root_ = insert_node(root_, std::move(rec), inserted); 
+    
+    // Only count newly inserted records
+    if (inserted) {
+        ++count_;
+    }
+
+    return inserted;    // report whether insert succeeded
 }
 
 const MemoryRecord* MemoryIndex::find(std::uint64_t id) const {
