@@ -16,7 +16,7 @@
 #pragma once
 #include <cstddef>
 #include <cstdint>
-#include <functional>
+#include <functional> 
 #include <string>
 #include <algorithm> // Additon: provides std::max
 
@@ -27,7 +27,7 @@ struct MemoryRecord {
 
 class MemoryIndex {
 public:
-    MemoryIndex() = default;
+    MemoryIndex() = default; 
     ~MemoryIndex();                       // frees every node
 
     MemoryIndex(const MemoryIndex&) = delete;
@@ -106,6 +106,84 @@ private:
         n->height = 1 + std::max(left_height, right_height);
     }
 
+    // Calculate the balance factor of a node (left height - right height)
+    static int balance_factor(const Node* n) {
+        // Calculate the height of both subtrees and return the difference
+        int left_height = static_cast<int>(height_of(n->left));     // Cast to int to allow negative balance factors
+        int right_height = static_cast<int>(height_of(n->right));   
+        return left_height - right_height;  // return bf
+    }
+
+    // Rotate right around n and return the new subtree root
+    static Node* right_rotate(Node* n) {
+        // Save nodes
+        Node* new_root= n->left;            // save current nodes left child as the new root
+        Node* middle = new_root->right;     // save the new roots right child as the middle
+        
+        // Right Rotate
+        new_root->right = n;                
+        n->left = middle;
+
+        // Update heights
+        update_height(n);
+        update_height(new_root);
+
+        return new_root;  // return the replacement subtree root
+    }
+
+    // Rotate left around n and return the new subtree root
+    static Node* left_rotate(Node* n) {
+        // Save nodes
+        Node* new_root = n->right;          // save current nodes right child as the new root
+        Node* middle = new_root->left;      // save the new roots left child as the middle
+        
+        // Left Rotate
+        new_root->left = n;
+        n->right = middle;
+
+        // Update heights
+        update_height(n);
+        update_height(new_root);
+
+        return new_root;  // return the replacement subtree root
+    }
+
+    // Update height and restore AVL balance for this subtree
+    static Node* rebalance(Node* n) {
+        // An empty subtree doesn't need balancing
+        if (n == nullptr) {
+            return nullptr;
+        }
+
+        // update the node's height before balancing
+        update_height(n);   
+
+        // Right-heavy subtree
+        if(balance_factor(n) < -1) {
+            //RL case: rotate right child right
+            if (balance_factor(n->right) == 1) {
+                n->right = right_rotate(n->right);
+            }
+            // Finish RL or fix RR with Left Rotation
+            return left_rotate(n);
+        }
+        // Left-heavy subtree
+        if(balance_factor(n) > 1) {
+            //LR case: rotate left child left
+            if (balance_factor(n->left) == -1) {
+                n->left = left_rotate(n->left);
+            }
+            // Finish LR or fix LL with Right Rotation
+            return right_rotate(n);
+        }
+
+        return n;   // already balanced
+    }
+
+    // Insert a record and return the updated subtree root
+    static Node* insert_node(Node* n, MemoryRecord rec, bool& inserted);
+    
     Node*       root_ = nullptr;
     std::size_t count_ = 0;
+    
 };
