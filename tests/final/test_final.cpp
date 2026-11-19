@@ -43,6 +43,9 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <cmath>
+#include <random>
+#include <algorithm>
 
 // =========================================================================
 // Memory — 4 examples
@@ -192,5 +195,68 @@ TEST(index_ranking_and_ties) {
 // =========================================================================
 // Your tests (at least 12 more). Spec §8 lists what they must cover.
 // =========================================================================
+
+// Check AVL height after sequential insertions and random removals
+TEST(bst_avl_large_workload) {
+    MemoryIndex tree; // Create an empty tree
+
+    constexpr std::uint64_t record_count = 10000; // Number of records to test
+    const auto max_height = static_cast<std::size_t>(
+        std::ceil(1.45 * std::log2(record_count + 2))); // Conservative AVL height limit
+
+    // Insert IDs from 1 through 10000
+    for (std:: uint64_t id = 1; id <= record_count; ++id) {
+        REQUIRE(tree.insert(MemoryRecord{id, "m" + std::to_string(id)}));
+    }
+
+    // Check the size and height after insertion
+    CHECK_EQ(tree.size(), std::size_t{record_count});
+    CHECK(tree.height() <= max_height);
+
+    // Verify the stored records
+    for (std::uint64_t id = 1; id <= record_count; ++id) {
+        const MemoryRecord* rec = tree.find(id);        // lookup current ID
+        REQUIRE(rec != nullptr);    // stop test if record is missing
+        CHECK_EQ(rec->id, id);      // check the stored ID
+        CHECK_EQ(rec->text, "m" + std::to_string(id));  // check the stored text
+    }
+
+    // Create a vector holding the IDs to remove
+    std::vector<std::uint64_t> removal_ids;
+
+    // Fill vector with all ID's
+    for(std::uint64_t id = 1; id <= record_count; ++id) {
+        removal_ids.push_back(id);
+    }
+
+    // Create a random number generator with a fixed seed
+    constexpr std::mt19937::result_type random_seed = 309;  // Seed for repeatable shuffling
+    std::mt19937 generator(random_seed);                    // Initialize the generator
+
+    // Shuffle those IDs
+    std::shuffle(removal_ids.begin(), removal_ids.end(), generator);
+
+    // Track expected number of records
+    std::size_t remaining = tree.size();
+
+    // Remove each ID in the shuffled order
+    for(std::uint64_t id : removal_ids) {
+        REQUIRE(tree.remove(id));   // require removal to succeed
+        --remaining;                // update the expected size
+
+        // Calculate the bound for the remaining records
+        const auto height_limit = static_cast<std::size_t>(
+        std::ceil(1.45 * std::log2(remaining + 2))); 
+        
+        // Verify the tree after the removal
+        CHECK(tree.find(id) == nullptr);        // verify this ID is gone
+        CHECK_EQ(tree.size(), remaining);       // verify the size matches the remaining count
+        CHECK(tree.height() <= height_limit);   // verify that height is within the AVL bound
+    }
+    
+    // Verify all the records have been removed and tree is empty
+    CHECK_EQ(tree.size(), std::size_t{0});      
+    CHECK_EQ(tree.height(), std::size_t{0});    
+}
 
 int main(int argc, char** argv) { return mt::run_all(argc, argv); }
