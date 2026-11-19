@@ -182,6 +182,15 @@ private:
 
     // Insert a record and return the updated subtree root
     static Node* insert_node(Node* n, MemoryRecord rec, bool& inserted);
+
+    // Remove a record and return the updated subtree root
+    static Node* remove_node(Node* n, std::uint64_t id, bool& removed);
+
+    // Visit a subtree's records in ascending ID order
+    static void in_order(const Node* n, const std::function<void(const MemoryRecord&)>& fn);
+
+    // Delete a subtree's children before deleting its root
+    static void post_order(Node* n);
     
     Node*       root_ = nullptr;
     std::size_t count_ = 0;
