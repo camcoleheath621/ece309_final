@@ -196,7 +196,7 @@ TEST(index_ranking_and_ties) {
 // Your tests (at least 12 more). Spec §8 lists what they must cover.
 // =========================================================================
 
-// Check AVL height after sequential insertions and random removals
+// Test 9: Check AVL height after sequential insertions and random removals
 TEST(bst_avl_large_workload) {
     MemoryIndex tree; // Create an empty tree
 
@@ -257,6 +257,186 @@ TEST(bst_avl_large_workload) {
     // Verify all the records have been removed and tree is empty
     CHECK_EQ(tree.size(), std::size_t{0});      
     CHECK_EQ(tree.height(), std::size_t{0});    
+}
+
+// Test 10: reject a duplicate ID without changing the original record
+TEST(bst_duplicate_id) {
+    MemoryIndex tree;   // create an empty tree
+    
+    std::uint64_t id = 123;         // use the same id 
+    std::string og_message  = "m";  // original cached text
+    std::string new_message = "n";  // different text for duplicate
+
+    // Insert the original record and reject the duplicate
+    REQUIRE(tree.insert(MemoryRecord{id, og_message}));
+    CHECK(!tree.insert(MemoryRecord{id, new_message}));
+    CHECK_EQ(tree.size(), std:: size_t{1}); // verify that size is the same
+    
+    // Verify that the original record is unchanged
+    const MemoryRecord* rec = tree.find(id);
+    REQUIRE(rec != nullptr);
+    CHECK_EQ(rec->id, id);
+    CHECK_EQ(rec->text, og_message);
+}
+
+// Test 11: verify a right rotation fixes the LL insertion case
+TEST(bst_avl_rotation_LL){
+    MemoryIndex tree;   // create an empty tree
+
+    // Define the ids and their original text
+    std::uint64_t id_30 = 30;
+    std::uint64_t id_20 = 20;
+    std::uint64_t id_10 = 10;
+    std::string message_30 = "m30";
+    std::string message_20 = "m20";
+    std::string message_10 = "m10";
+
+    //Insert in descending order to trigger the LL case
+    REQUIRE(tree.insert(MemoryRecord{id_30,message_30}));
+    REQUIRE(tree.insert(MemoryRecord{id_20,message_20}));
+    REQUIRE(tree.insert(MemoryRecord{id_10,message_10}));
+
+    // Verify LL rotation preserves size and restores balance
+    CHECK_EQ(tree.size(), std:: size_t{3});
+    CHECK_EQ(tree.height(), std:: size_t{2});
+
+    std::vector<std::uint64_t> ids; // store ids in order visited
+
+    // Collect each record'd ID during in-order transversal
+    tree.for_each_in_order([&](const MemoryRecord& rec) {
+        ids.push_back(rec.id);  // append the current record's id
+    });
+
+    CHECK_EQ(ids, (std::vector<std::uint64_t>{10,20,30})); // verify the sorted order
+    
+    // Verify every record has kept its original ID and text
+    for(std::uint64_t id : {10,20,30}) {
+        const MemoryRecord* rec = tree.find(id);        // lookup id
+        REQUIRE(rec != nullptr);                        // stop if record is missing
+        CHECK_EQ(rec->id, id);                          // verify the stored id
+        CHECK_EQ(rec->text, "m" + std::to_string(id));  // verify the original text
+    } 
+
+}
+
+// Test 12: verify a left-right double rotation fixes the LR insertion case
+TEST(bst_avl_rotation_LR){
+    MemoryIndex tree;   // create an empty tree
+
+    // Define the ids and their original text
+    std::uint64_t id_30 = 30;
+    std::uint64_t id_20 = 20;
+    std::uint64_t id_10 = 10;
+    std::string message_30 = "m30";
+    std::string message_20 = "m20";
+    std::string message_10 = "m10";
+
+    //Insert in 30, 10, 20 to trigger the LR case
+    REQUIRE(tree.insert(MemoryRecord{id_30,message_30}));
+    REQUIRE(tree.insert(MemoryRecord{id_10,message_10}));
+    REQUIRE(tree.insert(MemoryRecord{id_20,message_20}));
+
+    // Verify LR rotation preserves size and restores balance
+    CHECK_EQ(tree.size(), std:: size_t{3});
+    CHECK_EQ(tree.height(), std:: size_t{2});
+
+    std::vector<std::uint64_t> ids; // store ids in order visited
+
+    // Collect each record'd ID during in-order transversal
+    tree.for_each_in_order([&](const MemoryRecord& rec) {
+        ids.push_back(rec.id);  // append the current record's id
+    });
+
+    CHECK_EQ(ids, (std::vector<std::uint64_t>{10,20,30})); // verify the sorted order
+    
+    // Verify every record has kept its original ID and text
+    for(std::uint64_t id : {10,20,30}) {
+        const MemoryRecord* rec = tree.find(id);        // lookup id
+        REQUIRE(rec != nullptr);                        // stop if record is missing
+        CHECK_EQ(rec->id, id);                          // verify the stored id
+        CHECK_EQ(rec->text, "m" + std::to_string(id));  // verify the original text
+    } 
+
+}
+
+// Test 13: verify a left rotation fixes the RR insertion case
+TEST(bst_avl_rotation_RR){
+    MemoryIndex tree;   // create an empty tree
+
+    // Define the ids and their original text
+    std::uint64_t id_30 = 30;
+    std::uint64_t id_20 = 20;
+    std::uint64_t id_10 = 10;
+    std::string message_30 = "m30";
+    std::string message_20 = "m20";
+    std::string message_10 = "m10";
+
+    //Insert in ascending order to trigger the RR case
+    REQUIRE(tree.insert(MemoryRecord{id_10,message_10}));
+    REQUIRE(tree.insert(MemoryRecord{id_20,message_20}));
+    REQUIRE(tree.insert(MemoryRecord{id_30,message_30}));
+
+    // Verify RR rotation preserves size and restores balance
+    CHECK_EQ(tree.size(), std:: size_t{3});
+    CHECK_EQ(tree.height(), std:: size_t{2});
+
+    std::vector<std::uint64_t> ids; // store ids in order visited
+
+    // Collect each record'd ID during in-order transversal
+    tree.for_each_in_order([&](const MemoryRecord& rec) {
+        ids.push_back(rec.id);  // append the current record's id
+    });
+
+    CHECK_EQ(ids, (std::vector<std::uint64_t>{10,20,30})); // verify the sorted order
+    
+    // Verify every record has kept its original ID and text
+    for(std::uint64_t id : {10,20,30}) {
+        const MemoryRecord* rec = tree.find(id);        // lookup id
+        REQUIRE(rec != nullptr);                        // stop if record is missing
+        CHECK_EQ(rec->id, id);                          // verify the stored id
+        CHECK_EQ(rec->text, "m" + std::to_string(id));  // verify the original text
+    } 
+
+}
+
+// Test 14: verify a right-left double rotation fixes the RL insertion case
+TEST(bst_avl_rotation_RL){
+    MemoryIndex tree;   // create an empty tree
+
+    // Define the ids and their original text
+    std::uint64_t id_30 = 30;
+    std::uint64_t id_20 = 20;
+    std::uint64_t id_10 = 10;
+    std::string message_30 = "m30";
+    std::string message_20 = "m20";
+    std::string message_10 = "m10";
+
+    //Insert in 10, 30, 20 to trigger the RL case
+    REQUIRE(tree.insert(MemoryRecord{id_10,message_10}));
+    REQUIRE(tree.insert(MemoryRecord{id_30,message_30}));
+    REQUIRE(tree.insert(MemoryRecord{id_20,message_20}));
+
+    // Verify RL rotation preserves size and restores balance
+    CHECK_EQ(tree.size(), std:: size_t{3});
+    CHECK_EQ(tree.height(), std:: size_t{2});
+
+    std::vector<std::uint64_t> ids; // store ids in order visited
+
+    // Collect each record'd ID during in-order transversal
+    tree.for_each_in_order([&](const MemoryRecord& rec) {
+        ids.push_back(rec.id);  // append the current record's id
+    });
+
+    CHECK_EQ(ids, (std::vector<std::uint64_t>{10,20,30})); // verify the sorted order
+    
+    // Verify every record has kept its original ID and text
+    for(std::uint64_t id : {10,20,30}) {
+        const MemoryRecord* rec = tree.find(id);        // lookup id
+        REQUIRE(rec != nullptr);                        // stop if record is missing
+        CHECK_EQ(rec->id, id);                          // verify the stored id
+        CHECK_EQ(rec->text, "m" + std::to_string(id));  // verify the original text
+    } 
+
 }
 
 int main(int argc, char** argv) { return mt::run_all(argc, argv); }
